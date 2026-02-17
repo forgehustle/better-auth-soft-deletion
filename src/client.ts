@@ -3,11 +3,11 @@ import type { softDeletion } from "./index";
 
 export const softDeletionClient = () => {
     return {
-        id: "soft-deletion",
+        id: "SoftDeletion",
         $InferServerPlugin: {} as ReturnType<typeof softDeletion>,
         getActions: ($fetch: any) => ({
             restoreAccount: async () => {
-                const res = await $fetch("/soft-deletion/restore", {
+                const res = await $fetch("/SoftDeletion/restore", {
                     method: "POST",
                 });
                 return res as { data: { message: string }; error: any };

@@ -8,7 +8,7 @@ export const softDeletion = (options?: SoftDeletionOptions) => {
     const blockReRegistration = options?.blockReRegistration ?? true;
 
     return {
-        id: "soft-deletion",
+        id: "SoftDeletion",
         init: () => ({
             options: {
                 databaseHooks: {
@@ -153,7 +153,7 @@ export const softDeletion = (options?: SoftDeletionOptions) => {
         },
         endpoints: {
             restoreAccount: createAuthEndpoint(
-                "/soft-deletion/restore",
+                "/SoftDeletion/restore",
                 {
                     method: "POST",
                     useSession: true,
