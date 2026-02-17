@@ -1,4 +1,4 @@
-# SoftDeletion
+# soft-deletion
 
 A production-grade plugin for [Better Auth](https://better-auth.com) that implements soft deletion for users, preventing permanent record loss and controlling re-registration.
 
@@ -15,9 +15,9 @@ A production-grade plugin for [Better Auth](https://better-auth.com) that implem
 ## Installation
 
 ```bash
-npm install better-auth-soft-deletion
+npm install soft-deletion
 # or
-bun add better-auth-soft-deletion
+bun add soft-deletion
 ```
 
 ## Server Usage
@@ -25,7 +25,7 @@ bun add better-auth-soft-deletion
 ```typescript
 // auth.ts
 import { betterAuth } from "better-auth";
-import { softDeletion } from "better-auth-soft-deletion";
+import { softDeletion } from "soft-deletion";
 
 export const auth = betterAuth({
     database: // your adapter,
@@ -44,7 +44,7 @@ export const auth = betterAuth({
 ```typescript
 // auth-client.ts
 import { createAuthClient } from "better-auth/client";
-import { softDeletionClient } from "better-auth-soft-deletion/client";
+import { softDeletionClient } from "soft-deletion/client";
 
 export const authClient = createAuthClient({
     plugins: [
