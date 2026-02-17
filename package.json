@@ -1,6 +1,6 @@
 {
   "name": "soft-deletion",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Production-grade soft deletion plugin for Better Auth",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
