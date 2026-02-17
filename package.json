@@ -1,0 +1,49 @@
+{
+  "name": "better-auth-soft-deletion",
+  "version": "1.0.0",
+  "description": "Production-grade soft deletion plugin for Better Auth",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.mjs",
+      "require": "./dist/client.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts src/client.ts --format cjs,esm --dts --clean --splitting --sourcemap --external better-auth,better-auth/api,better-auth/client",
+    "dev": "npm run build -- --watch",
+    "lint": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "better-auth",
+    "auth",
+    "soft-delete",
+    "plugin",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "better-auth": ">=1.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/bun": "latest",
+    "better-auth": "latest",
+    "better-sqlite3": "^12.6.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.0.0"
+  }
+}
