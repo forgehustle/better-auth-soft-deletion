@@ -1,5 +1,5 @@
 {
-  "name": "SoftDeletion",
+  "name": "better-auth-soft-deletion",
   "version": "1.0.0",
   "description": "Production-grade soft deletion plugin for Better Auth",
   "main": "./dist/index.js",
