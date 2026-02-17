@@ -95,6 +95,51 @@ export const softDeletion = (options?: SoftDeletionOptions) => {
         hooks: {
             before: [
                 {
+                    matcher: (ctx: any) => ctx.path === "/delete-user",
+                    handler: async (ctx: any) => {
+                        const body = ctx.body as any;
+                        const session = ctx.context.session;
+                        const password = typeof body?.password === "string" ? body.password.trim() : "";
+
+                        if (!session?.user?.id) {
+                            throw new APIError("UNAUTHORIZED", {
+                                message: "You must be signed in to delete your account.",
+                            });
+                        }
+
+                        if (!password) {
+                            throw new APIError("BAD_REQUEST", {
+                                message: "Password confirmation is required to delete your account.",
+                            });
+                        }
+
+                        const credentialAccount = await ctx.context.adapter.findOne({
+                            model: "account",
+                            where: [
+                                { field: "userId", value: session.user.id },
+                                { field: "providerId", value: "credential" },
+                            ],
+                        });
+
+                        if (!credentialAccount?.password) {
+                            throw new APIError("BAD_REQUEST", {
+                                message: "Password confirmation is not available for this account.",
+                            });
+                        }
+
+                        const isPasswordValid = await ctx.context.password.verify(
+                            password,
+                            credentialAccount.password
+                        );
+
+                        if (!isPasswordValid) {
+                            throw new APIError("UNAUTHORIZED", {
+                                message: "Invalid password.",
+                            });
+                        }
+                    },
+                },
+                {
                     matcher: (ctx: any) => ctx.path.startsWith("/sign-in"),
                     handler: async (ctx: any) => {
                         const body = ctx.body as any;
@@ -164,7 +209,7 @@ export const softDeletion = (options?: SoftDeletionOptions) => {
                         throw new APIError("UNAUTHORIZED");
                     }
                     const user = session.user;
-                    
+
                     await ctx.context.adapter.update({
                         model: "user",
                         where: [{ field: "id", value: user.id }],
