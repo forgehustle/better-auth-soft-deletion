@@ -31,7 +31,8 @@
     "auth",
     "soft-delete",
     "plugin",
-    "typescript"
+    "typescript",
+    "bun"
   ],
   "author": "",
   "license": "MIT",
