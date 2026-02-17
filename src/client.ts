@@ -12,6 +12,13 @@ export const softDeletionClient = () => {
                 });
                 return res as { data: { message: string }; error: any };
             },
+            deleteUser: async (password: string) => {
+                const res = await $fetch("/delete-user", {
+                    method: "POST",
+                    body: { password }
+                });
+                return res as { data: { message: string }; error: any };
+            },
         }),
     } satisfies BetterAuthClientPlugin;
 };
