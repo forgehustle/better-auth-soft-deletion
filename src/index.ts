@@ -38,13 +38,21 @@ export const softDeletion = (options?: SoftDeletionOptions) => {
                                     const hash = await hashIdentifier(user.email);
                                     const expiresAt = new Date();
                                     expiresAt.setDate(expiresAt.getDate() + retentionDays);
+                                    const generatedId =
+                                        typeof generateId === "function"
+                                            ? await Promise.resolve(
+                                                  generateId({ model: "blockedIdentifier" })
+                                              )
+                                            : undefined;
 
                                     const data = {
-                                        id: generateId?.(),
                                         identifierHash: hash,
                                         type: "email",
                                         expiresAt,
                                         createdAt: new Date(),
+                                        ...(generatedId !== undefined && generatedId !== false
+                                            ? { id: generatedId }
+                                            : {}),
                                     };
 
                                     // Save to blockedIdentifier table
