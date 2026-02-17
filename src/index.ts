@@ -15,8 +15,17 @@ export const softDeletion = (options?: SoftDeletionOptions) => {
                     user: {
                         delete: {
                             before: async (user: any, ctx: any) => {
+                                const adapter = ctx?.adapter ?? ctx?.context?.adapter;
+                                const generateId = ctx?.generateId ?? ctx?.context?.generateId;
+
+                                if (!adapter) {
+                                    throw new APIError("INTERNAL_SERVER_ERROR", {
+                                        message: "Soft deletion adapter context is unavailable.",
+                                    });
+                                }
+
                                 // Soft delete instead of hard delete
-                                await ctx.adapter.update({
+                                await adapter.update({
                                     model: "user",
                                     where: [{ field: "id", value: user.id }],
                                     update: {
@@ -31,7 +40,7 @@ export const softDeletion = (options?: SoftDeletionOptions) => {
                                     expiresAt.setDate(expiresAt.getDate() + retentionDays);
 
                                     const data = {
-                                        id: ctx.generateId(),
+                                        id: generateId?.(),
                                         identifierHash: hash,
                                         type: "email",
                                         expiresAt,
@@ -39,7 +48,7 @@ export const softDeletion = (options?: SoftDeletionOptions) => {
                                     };
 
                                     // Save to blockedIdentifier table
-                                    await ctx.adapter.create({
+                                    await adapter.create({
                                         model: "blockedIdentifier",
                                         data,
                                     });
