@@ -7,13 +7,13 @@ export const softDeletionClient = () => {
         $InferServerPlugin: {} as ReturnType<typeof softDeletion>,
         getActions: ($fetch: any) => ({
             restoreAccount: async () => {
-                const res = await $fetch("/auth/SoftDeletion/restore", {
+                const res = await $fetch("/SoftDeletion/restore", {
                     method: "POST",
                 });
                 return res as { data: { message: string }; error: any };
             },
             deleteUser: async (password: string) => {
-                const res = await $fetch("/auth/delete-user", {
+                const res = await $fetch("/delete-user", {
                     method: "POST",
                     body: { password }
                 });
