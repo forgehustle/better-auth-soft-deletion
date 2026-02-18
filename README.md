@@ -184,6 +184,32 @@ Run your Better Auth/ORM migration flow after enabling plugin schema changes.
 
 ---
 
+## Release process
+
+This repository publishes to npm from GitHub Actions when a tag like `v*` is pushed.
+
+1. Make your code changes and commit to `main`.
+2. Bump version (this creates a commit and tag):
+
+```bash
+cd /home/murali/projects/SoftDeletion
+npm version patch
+```
+
+Use `npm version minor` or `npm version major` when needed.
+
+3. Push commit and tag:
+
+```bash
+git push origin main --follow-tags
+```
+
+4. Verify publish job:
+- open `https://github.com/forgehustle/better-auth-soft-deletion/actions`
+- confirm `Publish to npm` completed successfully
+
+---
+
 ## License
 
 MIT
