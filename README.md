@@ -23,6 +23,9 @@ When restore is called with valid email/password:
 - `deletedAt` is cleared
 - blocked identifier entry is removed
 
+Restore endpoint exposed by this plugin:
+- `POST /soft-deletion/restore`
+
 ---
 
 ## Installation
@@ -76,6 +79,10 @@ export const authClient = createAuthClient({
 });
 ```
 
+Important:
+- Prefer plugin actions from `authClient` for restore operations.
+- Avoid manual `fetch` calls to plugin endpoints in React apps.
+
 ---
 
 ## Usage examples
@@ -90,7 +97,7 @@ await authClient.deleteUser({
 
 If password is missing/invalid shape, Better Auth will reject the request.
 
-### Restore account (recommended: JSON body via POST)
+### Restore account (recommended)
 
 ```ts
 const { data, error } = await authClient.restoreAccount({
