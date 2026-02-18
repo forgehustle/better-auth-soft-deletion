@@ -1,103 +1,182 @@
-# soft-deletion
+# @forgehustle/better-auth-soft-deletion
 
-A production-grade plugin for [Better Auth](https://better-auth.com) that implements soft deletion for users, preventing permanent record loss and controlling re-registration.
+Soft deletion plugin for [Better Auth](https://better-auth.com) with:
+- user soft delete (`status = "deleted"`, `deletedAt`)
+- sign-in blocking for deleted users
+- optional re-registration blocking during retention window
+- account restore endpoint
+- immediate revocation of all user sessions on delete
 
-## Features
+## What this plugin does
 
-- **Soft Delete**: Overrides the default delete behavior to mark users as `deleted` and record the `deletedAt` timestamp.
-- **Password Confirmation for Deletion**: Requires the user to confirm their password before deletion is processed.
-- **Login Prevention**: Automatically blocks users with `status: "deleted"` from signing in.
-- **Re-registration Protection**: Hashes user identifiers (emails) and blocks them from signing up again for a configurable retention period.
-- **Secondary Storage Support**: Optionally use Redis or other KV stores for high-performance blocked identifier checks.
-- **Account Restoration**: Secure endpoint to restore a soft-deleted account.
-- **CLI Compatible**: Works seamlessly with `npx better-auth migrate` and ORM generators.
-- **NPM Ready**: Packaged for distribution with full TypeScript support (ESM/CJS).
+When a user deletes their account:
+1. User row is kept (not hard-deleted)
+2. `status` becomes `"deleted"` and `deletedAt` is set
+3. All active sessions are revoked
+4. (Optional) Email is blocked from re-registering for `retentionDays`
+
+When a deleted user tries to sign in:
+- plugin returns `403 FORBIDDEN` with code `ACCOUNT_DELETED`
+
+When restore is called with valid email/password:
+- user status is set back to `"active"`
+- `deletedAt` is cleared
+- blocked identifier entry is removed
+
+---
 
 ## Installation
 
 ```bash
-npm install soft-deletion
+npm install @forgehustle/better-auth-soft-deletion
 # or
-bun add soft-deletion
+bun add @forgehustle/better-auth-soft-deletion
 ```
 
-## Server Usage
+---
 
-```typescript
-// auth.ts
+## Server setup (Better Auth)
+
+```ts
 import { betterAuth } from "better-auth";
-import { softDeletion } from "soft-deletion";
+import { softDeletion } from "@forgehustle/better-auth-soft-deletion";
 
 export const auth = betterAuth({
-    database: // your adapter,
-    plugins: [
-        softDeletion({
-            retentionDays: 30, // Default is 30
-            blockReRegistration: true, // Default is true
-            // secondaryStorage: redisStorage // Optional
-        })
-    ]
+  // your adapter
+  // database: drizzleAdapter(...)
+  plugins: [
+    softDeletion({
+      retentionDays: 30,         // default: 30
+      blockReRegistration: true, // default: true
+    }),
+  ],
+  user: {
+    deleteUser: {
+      enabled: true,
+    },
+  },
 });
 ```
 
-## Client Usage
+Important:
+- `deleteUser` must be enabled in Better Auth config.
+- your client should send password confirmation to delete account (`password` string).
 
-```typescript
-// auth-client.ts
-import { createAuthClient } from "better-auth/client";
-import { softDeletionClient } from "soft-deletion/client";
+---
+
+## Client setup
+
+```ts
+import { createAuthClient } from "better-auth/react";
+import { softDeletionClient } from "@forgehustle/better-auth-soft-deletion/client";
 
 export const authClient = createAuthClient({
-    plugins: [
-        softDeletionClient()
-    ]
+  baseURL: "http://localhost:5000/auth", // adjust for your app
+  plugins: [softDeletionClient()],
 });
+```
 
-// To restore an account (user must be authenticated)
-const { data, error } = await authClient.restoreAccount();
+---
 
-// To delete an account (user must provide password confirmation)
+## Usage examples
+
+### Delete account (requires password confirmation)
+
+```ts
 await authClient.deleteUser({
-    password: "current-password"
+  password: "CurrentPassword123!",
 });
 ```
 
-## Architecture
+If password is missing/invalid shape, Better Auth will reject the request.
 
-- **`index.ts`**: Server-side plugin.
-- **`client.ts`**: Client-side plugin.
-- **`types.ts`**: Shared TypeScript definitions.
-- **`utils.ts`**: Privacy-focused hashing utilities.
+### Restore account (recommended: JSON body via POST)
 
-## Lifecycle Flow
+```ts
+const { data, error } = await authClient.restoreAccount({
+  email: "user@example.com",
+  password: "CurrentPassword123!",
+});
 
-1. **Delete Request**: User calls `deleteUser({ password })`.
-2. **Password Check**: `hooks.before` on `/delete-user` verifies the provided password.
-3. **Hook Execution**: `databaseHooks.user.delete.before` triggers via the `init` function.
-4. **Soft Mark**: Plugin updates user `status` to `"deleted"` and sets `deletedAt`.
-5. **Block Entry**: A hashed entry of the email is added to the `blockedIdentifier` table.
-6. **Intercept**: The hook returns `false`, telling the adapter to skip the hard delete.
-7. **Sign-In Protection**: `hooks.before` checks if the email trying to sign in belongs to a `"deleted"` user.
-8. **Sign-Up Protection**: `hooks.before` hashes the sign-up email and checks it against the `blockedIdentifier` table.
-
-## Security & Edge Cases
-
-- **Identifier Hashing**: Emails are hashed using SHA-256 before storage in `blockedIdentifier` to protect user privacy.
-- **Deletion Confirmation**: Account deletion requires current password confirmation.
-- **Login after Delete**: If a user attempts to log in after being soft-deleted, they receive a `FORBIDDEN` error.
-- **OAuth-only Accounts**: Accounts without a credential password cannot complete this delete flow unless an alternative verification flow is added.
-- **Restore Race Condition**: Restoration resets the status to `active` and removes the blocked identifier entry.
-- **Cleanup**: Blocked identifiers have an `expiresAt` field. Use a cron job to clean up expired entries from the `blockedIdentifier` table.
-
-## Database Migrations
-
-Run your ORM's migration tool or Better Auth CLI to add the necessary fields and tables:
-
-```bash
-npx @better-auth/cli migrate
+if (error) {
+  // handle by error.code
+  console.error(error.code, error.message);
+} else {
+  console.log(data.message); // "Account restored successfully."
+}
 ```
 
-The plugin adds:
-- `user.status` (string)
-- `user.deletedAt` (date)
-- `blockedIdentifier` table
+---
+
+## Options
+
+```ts
+type SoftDeletionOptions = {
+  retentionDays?: number;         // default: 30
+  blockReRegistration?: boolean;  // default: true
+  restoreRateLimit?: (
+    params: { email: string; context: unknown }
+  ) => boolean | { allowed: boolean; code?: string; message?: string; status?: number };
+};
+```
+
+---
+
+## Added schema
+
+This plugin extends Better Auth schema with:
+
+- `user.status` (`string`, default: `"active"`)
+- `user.deletedAt` (`date | null`)
+- `blockedIdentifier` model:
+  - `identifierHash`
+  - `type`
+  - `expiresAt`
+
+Run your Better Auth/ORM migration flow after enabling plugin schema changes.
+
+---
+
+## Error codes you should handle on client
+
+- `ACCOUNT_DELETED` (403): deleted user attempted sign-in
+- `EMAIL_BLOCKED` (403): re-registration blocked during retention window
+- `RESTORE_INPUT_REQUIRED` (400): email/password missing on restore
+- `ACCOUNT_NOT_DELETED` (400): restore requested for active account
+- `NO_PASSWORD_CREDENTIAL` (400): credential password not available (for example OAuth-only account)
+- `AUTH_INVALID_CREDENTIALS` (401): invalid email/password on restore
+
+---
+
+## Security notes
+
+- Always send restore credentials in POST JSON body.
+- Do not put email/password in query string.
+- Revoke sessions on delete is already built in:
+  - uses Better Auth internal adapter `deleteSessions(userId)` when available
+  - fallback removes `session` model rows by `userId`
+- If your app uses Better Auth `session.cookieCache`, revoked sessions may appear active until cache refresh on other devices. For strict behavior, disable cookie cache or force `disableCookieCache: true` on session refresh checks.
+
+---
+
+## Troubleshooting
+
+- `Password confirmation is required to delete your account`:
+  - ensure `deleteUser({ password: "..." })` is sent with `password` as string.
+
+- `VALIDATION_ERROR [body.password] expected string, received object`:
+  - your payload shape is wrong. Send a plain string value for `password`.
+
+- `RESTORE_INPUT_REQUIRED`:
+  - restore request is missing `email` or `password`.
+  - verify request body is JSON and keys are exact: `email`, `password`.
+
+- Deleted user can still access protected routes on another browser:
+  - this is usually session cookie cache behavior, not DB/Redis session persistence.
+  - disable Better Auth session cookie cache for strict immediate invalidation.
+
+---
+
+## License
+
+MIT
