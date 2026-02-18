@@ -1,6 +1,6 @@
 {
   "name": "@forgehustle/better-auth-soft-deletion",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Production-grade soft deletion plugin for Better Auth",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -21,8 +21,10 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/client.ts --format cjs,esm --dts --clean --splitting --sourcemap --external better-auth,better-auth/api,better-auth/client",
-    "dev": "npm run build -- --watch",
+    "build": "npm run build:js && npm run build:types",
+    "build:js": "tsup src/index.ts src/client.ts --format cjs,esm --clean --sourcemap --external better-auth,better-auth/api,better-auth/client",
+    "build:types": "tsc -p tsconfig.types.json",
+    "dev": "npm run build:js -- --watch",
     "lint": "tsc",
     "prepublishOnly": "npm run build"
   },

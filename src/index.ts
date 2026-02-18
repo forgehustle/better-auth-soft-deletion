@@ -252,7 +252,7 @@ export const softDeletion = (options?: SoftDeletionOptions) => {
         },
         endpoints: {
             restoreAccount: createAuthEndpoint(
-                "/SoftDeletion/restore",
+                "/soft-deletion/restore",
                 {
                     method: "POST",
                     body: restoreAccountBodySchema,
